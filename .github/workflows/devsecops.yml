@@ -31,3 +31,10 @@ jobs:
           scan-ref: Dockerfile
           severity: HIGH,CRITICAL
           exit-code: '1'
+
+  Deploy:
+    needs: Dockerfile
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy
+        run: echo "Votre application est prête à être déployée"
