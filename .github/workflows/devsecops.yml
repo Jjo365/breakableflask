@@ -1,3 +1,26 @@
+name: Automatisation des tests DevSecOps
+on: push
+
+permissions:
+  contents: read
+
+jobs:
+  Dependances:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Scanner requirements.txt avec Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_DETECTION_PRIORITY: comprehensive
+        with:
+          scan-type: fs
+          scan-ref: requirements.txt
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+
   Dockerfile:
     needs: Dependances
     runs-on: ubuntu-latest
@@ -7,20 +30,27 @@
       - name: Construire l'image Docker
         run: docker build -t breakableflask:ci .
 
-      - name: Scanner l'image Docker avec Trivy
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: image
-          image-ref: breakableflask:ci
-          scanners: vuln
-          severity: HIGH,CRITICAL
-          exit-code: '1'
-
-      - name: Contrôler le fichier Dockerfile avec Trivy
-        if: ${{ !cancelled() }}
+      - name: Contrôler le Dockerfile avec Trivy
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: config
           scan-ref: Dockerfile
           severity: HIGH,CRITICAL
           exit-code: '1'
+
+      - name: Scanner l'image construite avec Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          skip-setup-trivy: 'true'
+          scan-type: image
+          image-ref: breakableflask:ci
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+
+  Deploy:
+    needs: Dockerfile
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy
+        run: echo "Votre application est prête à être déployée"
